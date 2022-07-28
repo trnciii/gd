@@ -10,7 +10,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 # If modifying these scopes, delete the file token.json.
-SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly']
+SCOPES = ['https://www.googleapis.com/auth/drive']
 
 
 def auth():
@@ -40,7 +40,7 @@ def auth():
 
 def list_items(service):
 	# Call the Drive v3 API
-	results = service.files().list(pageSize=10).execute()
+	results = service.files().list(pageSize=30).execute()
 	items = results.get('files', [])
 
 	if not items:
@@ -48,18 +48,30 @@ def list_items(service):
 		return
 	print('Files:')
 	for item in items:
-		print(item['name'])
-		pprint.pprint({k: v for k, v in item.items() if k != 'name'})
+		w = max(len(k) for k in item.keys())
+		for k, v in item.items():
+			print(u'{}: {}'.format(k.ljust(w), v))
 		print()
-		# print(u'{0} ({1})'.format(item['name'], item['id']))
 
-		print('keys', item.keys())
+
+def make_directory(service):
+	return service.files().create(
+		body={
+			'name': 'creted-by-quickstart',
+			'mimeType': 'application/vnd.google-apps.folder',
+		},
+		fields = 'id'
+	).execute()
 
 
 def main():
 	try:
 		service = build('drive', 'v3', credentials=auth())
-		list_items(service)
+		# list_items(service)
+
+		file = make_directory(service)
+		print('folder ID:', file.get('id'))
+
 
 	except HttpError as error:
 		# TODO(developer) - Handle errors from drive API.
