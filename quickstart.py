@@ -65,40 +65,45 @@ def fileId_from_path(service, path):
 
 
 
-def list_items(service):
-	# Call the Drive v3 API
-	results = service.files().list(pageSize=30).execute()
-	items = results.get('files', [])
-	if not items:
-		print('No files found.')
-		return
+def list_items(service, path, order='folder, name'):
+	results = service.files().list(
+		q = '"{}" in parents'.format(fileId_from_path(service, path)),
+		orderBy = order
+	).execute()
 
-	for item in items:
-		w = max(len(k) for k in item.keys())
-		for k, v in item.items():
-			print(u'{}: {}'.format(k.ljust(w), v))
-		print()
+	return results.get('files', [])
 
 
-def make_directory(service):
-	return service.files().create(
+def make_directory(service, path):
+	head, tail = os.path.split(path)
+	parent_id = fileId_from_path(service, head)
+
+	fileId = service.files().create(
 		body={
-			'name': 'creted-by-quickstart',
+			'name': tail,
 			'mimeType': 'application/vnd.google-apps.folder',
+			'parents': [f"{parent_id}"]
 		},
 		fields = 'id'
 	).execute()
+
+	return fileId
 
 
 def main():
 	try:
 		service = build('drive', 'v3', credentials=auth())
-		fileid = fileId_from_path(service, 'mf/slides/20210707.pptx')
-		print(fileid)
-		# list_items(service)
 
-		# file = make_directory(service)
-		# print('folder ID:', file.get('id'))
+		# fileid = fileId_from_path(service, 'mf')
+
+		item_list = list_items(service, 'mf/slides')
+		for i in item_list:
+			for k, v in i.items():
+				print(k, v)
+			print()
+
+		file = make_directory(service, 'mf/slides/new_folder')
+		print('folder ID:', file.get('id'))
 
 
 	except HttpError as error:
