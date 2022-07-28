@@ -37,19 +37,28 @@ def auth():
 
 	return creds
 
+
 def fileId_from_path(service, path):
 	path = os.path.normpath(path).split('/')
+	depth = len(path)
+	if path[0] == '.':
+		print('path cannot be root')
+		return
 
-	q = ' or '.join( f'name = "{name}"' for name in path )
-	results = service.files().list(
+
+	q = '("root" in parents and ' + ') or ('.join( f'name = "{name}"' for name in path ) + ')'
+
+	files = service.files().list(
 		q = q,
 		fields = 'files(parents, id, name)'
-	).execute()
+	).execute()['files']
 
-	files = results['files']
 
-	trees = []
-	depth = len(path)
+	if depth == 1:
+		assert len(files) == 1
+		return files[0]['id']
+
+
 	for base in [i for i in files if i['name'] == path[-1]]:
 		tree = [base]
 
@@ -65,10 +74,13 @@ def fileId_from_path(service, path):
 
 
 
-def list_items(service, path, order='folder, name'):
+def list_items(service, path, order='folder, name', trashed = False):
 	results = service.files().list(
-		q = '"{}" in parents'.format(fileId_from_path(service, path)),
-		orderBy = order
+		q = '"{0}" in parents and trashed = {1}'.format(
+			fileId_from_path(service, path),
+			'true' if trashed else 'false'
+		),
+		orderBy = order,
 	).execute()
 
 	return results.get('files', [])
@@ -82,7 +94,7 @@ def make_directory(service, path):
 		body={
 			'name': tail,
 			'mimeType': 'application/vnd.google-apps.folder',
-			'parents': [f"{parent_id}"]
+			'parents': [f"{parent_id}"] if parent_id else []
 		},
 		fields = 'id'
 	).execute()
@@ -94,15 +106,19 @@ def main():
 	try:
 		service = build('drive', 'v3', credentials=auth())
 
-		# fileid = fileId_from_path(service, 'mf')
+		# fileid = fileId_from_path(service, '')
+		# print(fileid)
 
-		item_list = list_items(service, 'mf/slides')
-		for i in item_list:
-			for k, v in i.items():
-				print(k, v)
-			print()
 
-		file = make_directory(service, 'mf/slides/new_folder')
+		# item_list = list_items(service, 'mf')
+		# for i in item_list:
+		# 	print(i['name'])
+		# 	continue
+		# 	for k, v in i.items():
+		# 		print(k, v)
+		# 	print()
+
+		file = make_directory(service, 'mf/new_folder')
 		print('folder ID:', file.get('id'))
 
 
