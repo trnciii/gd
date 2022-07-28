@@ -37,16 +37,42 @@ def auth():
 
 	return creds
 
+def fileId_from_path(service, path):
+	path = os.path.normpath(path).split('/')
+
+	q = ' or '.join( f'name = "{name}"' for name in path )
+	results = service.files().list(
+		q = q,
+		fields = 'files(parents, id, name)'
+	).execute()
+
+	files = results['files']
+
+	trees = []
+	depth = len(path)
+	for base in [i for i in files if i['name'] == path[-1]]:
+		tree = [base]
+
+		for count in reversed(range(-depth, -1)):
+			try:
+				parent = next(filter(lambda i: i['id'] in tree[-1]['parents'] and i['name'] == path[count], files))
+				tree.append(parent)
+				if parent['name'] == path[0]:
+					# print(*tree, sep='\n')
+					return tree[0]['id']
+			except StopIteration:
+				break
+
+
 
 def list_items(service):
 	# Call the Drive v3 API
 	results = service.files().list(pageSize=30).execute()
 	items = results.get('files', [])
-
 	if not items:
 		print('No files found.')
 		return
-	print('Files:')
+
 	for item in items:
 		w = max(len(k) for k in item.keys())
 		for k, v in item.items():
@@ -67,10 +93,12 @@ def make_directory(service):
 def main():
 	try:
 		service = build('drive', 'v3', credentials=auth())
+		fileid = fileId_from_path(service, 'mf/slides/20210707.pptx')
+		print(fileid)
 		# list_items(service)
 
-		file = make_directory(service)
-		print('folder ID:', file.get('id'))
+		# file = make_directory(service)
+		# print('folder ID:', file.get('id'))
 
 
 	except HttpError as error:
