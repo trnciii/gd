@@ -4,6 +4,7 @@ setup(
 	name="ggrdr",
 	version="0.0.1",
 	packages=find_packages(),
+	package_data={'ggrdr':['data/*']},
 	install_requires=[
 		'google-api-python-client',
 		'google-auth-httplib2',
