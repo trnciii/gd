@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import os.path
 import argparse
+import webbrowser
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -45,27 +46,29 @@ def auth():
 	return creds
 
 
-def fileId_from_path(service, path):
+def file_from_path(service, path, fields=[]):
+	fields += ['parents', 'id', 'name']
+
 	path = os.path.normpath(path).split('/')
 	if path[0] in {'.', 'root'}:
-		_, *path = path
+		del path[0]
 
 	depth = len(path)
 	if depth == 0:
-		return 'root'
+		return service.files().get(fileId='root', fields=','.join(fields)).execute()
 
 
-	q = '("root" in parents and ' + ') or ('.join( f'name = "{name}"' for name in path ) + ')'
+	q = 'or'.join(f'(name="{name}" and trashed=false)' for name in path).replace('(', '("root" in parents and ', 1)
 
 	files = service.files().list(
 		q = q,
-		fields = 'files(parents, id, name)'
+		fields = f'files({",".join(fields)})'
 	).execute()['files']
 
 
 	if depth == 1:
 		assert len(files) == 1
-		return files[0]['id']
+		return files[0]
 
 
 	for base in [i for i in files if i['name'] == path[-1]]:
@@ -77,16 +80,16 @@ def fileId_from_path(service, path):
 				tree.append(parent)
 				if parent['name'] == path[0]:
 					# print(*tree, sep='\n')
-					return tree[0]['id']
+					return tree[0]
 			except StopIteration:
 				break
 
 
 
 def list_items(service, path, order='folder, name', trashed = False):
-	fid = fileId_from_path(service, path)
+	fid = file_from_path(service, path)['id']
 	results = service.files().list(
-		q = f'"{fid}" in parents and trashed = {"true" if trashed else "false"}'.format(),
+		q = f'"{fid}" in parents and trashed = {"true" if trashed else "false"}',
 		orderBy = order,
 	).execute()
 
@@ -95,7 +98,7 @@ def list_items(service, path, order='folder, name', trashed = False):
 
 def make_directory(service, path):
 	head, tail = os.path.split(path)
-	parent_id = fileId_from_path(service, head)
+	parent_id = file_from_path(service, head)['id']
 
 	fileId = service.files().create(
 		body={
@@ -119,8 +122,12 @@ def trash(service, empty=False):
 
 
 def remove(service, path):
-	fid = fileId_from_path(service, path)
+	fid = file_from_path(service, path)['id']
 	service.files().update(fileId=fid, body={'trashed': True}).execute()
+
+def open_dir(service, path):
+	file = file_from_path(service, path, fields=['webViewLink'])
+	webbrowser.open(file['webViewLink'])
 
 
 def main():
@@ -146,6 +153,18 @@ def main():
 		p = sub.add_parser('rm')
 		p.add_argument('path')
 		p.set_defaults(handler=lambda args:remove(service, args.path))
+
+		p = sub.add_parser('open')
+		p.add_argument('path', nargs='?', default='root')
+		p.set_defaults(handler=lambda args:open_dir(service, args.path))
+
+		p = sub.add_parser('info')
+		p.add_argument('path', nargs='?', default='root')
+		p.add_argument('fields', nargs='*')
+		p.set_defaults(handler=lambda args:print('\n'.join(
+			f'{k}\t{v}' for k, v in file_from_path(service, args.path, args.fields).items())
+		))
+
 
 		args = parser.parse_args()
 		args.handler(args)
