@@ -113,6 +113,11 @@ def trash(service, empty=False):
 		service.files().emptyTrash().execute()
 
 
+def remove(service, path):
+	fid = fileId_from_path(service, path)
+	service.files().update(fileId=fid, body={'trashed': True}).execute()
+
+
 def main():
 	try:
 		service = build('drive', 'v3', credentials=auth())
@@ -132,6 +137,10 @@ def main():
 		p = sub.add_parser('trash')
 		p.add_argument('-E', '--empty', action='store_true')
 		p.set_defaults(handler=lambda args:trash(service, args.empty))
+
+		p = sub.add_parser('rm')
+		p.add_argument('path')
+		p.set_defaults(handler=lambda args:remove(service, args.path))
 
 		args = parser.parse_args()
 		args.handler(args)
