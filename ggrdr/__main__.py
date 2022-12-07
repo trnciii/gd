@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-import os.path
+import os
 import argparse
 import webbrowser
 
@@ -17,6 +17,21 @@ SCOPES = ['https://www.googleapis.com/auth/drive']
 def lspretty(l):
 	print('\n'.join(i['name'] for i in l))
 
+def datapath():
+	import ggrdr
+	return os.path.join(ggrdr.__path__[0], 'data')
+
+def auth_init():
+	data = datapath()
+	os.makedirs(data, exist_ok=True)
+
+	print('enter credentials:')
+	s = ''.join(iter(lambda:input(), ''))
+	with open(os.path.join(data, 'credentials.json'), 'w') as f:
+		f.write(s)
+
+	auth()
+
 
 def auth():
 	"""Shows basic usage of the Drive v3 API.
@@ -26,8 +41,7 @@ def auth():
 	# The file token.json stores the user's access and refresh tokens, and is
 	# created automatically when the authorization flow completes for the first
 	# time.
-	import ggrdr
-	data = os.path.join(ggrdr.__path__[0], 'data')
+	data = datapath()
 
 	if os.path.exists(os.path.join(data, 'token.json')):
 		creds = Credentials.from_authorized_user_file(os.path.join(data, 'token.json'), SCOPES)
@@ -135,38 +149,40 @@ def open_dir(service, path):
 
 def main():
 	try:
-		service = build('drive', 'v3', credentials=auth())
+		service = lambda:build('drive', 'v3', credentials=auth())
 
 		parser = argparse.ArgumentParser()
 		sub = parser.add_subparsers()
 
 		p = sub.add_parser('mkdir')
 		p.add_argument('path')
-		p.set_defaults(handler=lambda args:make_directory(service, args.path))
+		p.set_defaults(handler=lambda args:make_directory(service(), args.path))
 
 		p = sub.add_parser('ls')
 		p.add_argument('path', nargs='?', default='root')
 		p.add_argument('--trashed', action='store_true')
-		p.set_defaults(handler=lambda args:lspretty(list_items(service, args.path, trashed=args.trashed)))
+		p.set_defaults(handler=lambda args:lspretty(list_items(service(), args.path, trashed=args.trashed)))
 
 		p = sub.add_parser('trash')
 		p.add_argument('-E', '--empty', action='store_true')
-		p.set_defaults(handler=lambda args:trash(service, args.empty))
+		p.set_defaults(handler=lambda args:trash(service(), args.empty))
 
 		p = sub.add_parser('rm')
 		p.add_argument('path')
-		p.set_defaults(handler=lambda args:remove(service, args.path))
+		p.set_defaults(handler=lambda args:remove(service(), args.path))
 
 		p = sub.add_parser('open')
 		p.add_argument('path', nargs='?', default='root')
-		p.set_defaults(handler=lambda args:open_dir(service, args.path))
+		p.set_defaults(handler=lambda args:open_dir(service(), args.path))
 
 		p = sub.add_parser('info')
 		p.add_argument('path', nargs='?', default='root')
 		p.add_argument('fields', nargs='*')
 		p.set_defaults(handler=lambda args:print('\n'.join(
-			f'{k}\t{v}' for k, v in file_from_path(service, args.path, args.fields).items())
+			f'{k}\t{v}' for k, v in file_from_path(service(), args.path, args.fields).items())
 		))
+
+		p = sub.add_parser('auth-init').set_defaults(handler=lambda _:auth_init())
 
 
 		args = parser.parse_args()
