@@ -13,6 +13,10 @@ from googleapiclient.errors import HttpError
 SCOPES = ['https://www.googleapis.com/auth/drive']
 
 
+def lspretty(l):
+	print('\n'.join(i['name'] for i in l))
+
+
 def auth():
 	"""Shows basic usage of the Drive v3 API.
 	Prints the names and ids of the first 10 files the user has access to.
@@ -100,6 +104,15 @@ def make_directory(service, path):
 	return fileId
 
 
+def trash(service, empty=False):
+	results = service.files().list(q='trashed = true').execute().get('files', [])
+	if len(results) == 0: return
+
+	lspretty(results)
+	if empty and 'n' != input('remove files [Y/n]').lower():
+		service.files().emptyTrash().execute()
+
+
 def main():
 	try:
 		service = build('drive', 'v3', credentials=auth())
@@ -114,8 +127,11 @@ def main():
 		p = sub.add_parser('ls')
 		p.add_argument('path')
 		p.add_argument('--trashed', action='store_true')
-		p.set_defaults(handler=lambda args:print('\n'.join(i['name'] for i in list_items(service, args.path, trashed=args.trashed))))
+		p.set_defaults(handler=lambda args:lspretty(list_items(service, args.path, trashed=args.trashed)))
 
+		p = sub.add_parser('trash')
+		p.add_argument('-E', '--empty', action='store_true')
+		p.set_defaults(handler=lambda args:trash(service, args.empty))
 
 		args = parser.parse_args()
 		args.handler(args)
