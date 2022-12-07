@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 import os.path
-import pprint
+import argparse
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -106,21 +106,20 @@ def main():
 	try:
 		service = build('drive', 'v3', credentials=auth())
 
-		# fileid = fileId_from_path(service, '')
-		# print(fileid)
+		parser = argparse.ArgumentParser()
+		sub = parser.add_subparsers()
+
+		p = sub.add_parser('mkdir')
+		p.add_argument('path')
+		p.set_defaults(handler=lambda args:make_directory(service, args.path))
+
+		p = sub.add_parser('ls')
+		p.add_argument('path')
+		p.set_defaults(handler=lambda args:print('\n'.join(i['name'] for i in list_items(service, args.path))))
 
 
-		# item_list = list_items(service, 'mf')
-		# for i in item_list:
-		# 	print(i['name'])
-		# 	continue
-		# 	for k, v in i.items():
-		# 		print(k, v)
-		# 	print()
-
-		file = make_directory(service, 'mf/new_folder')
-		print('folder ID:', file.get('id'))
-
+		args = parser.parse_args()
+		args.handler(args)
 
 	except HttpError as error:
 		# TODO(developer) - Handle errors from drive API.
