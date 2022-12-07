@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(
 	name="ggrdr",
 	version="0.0.1",
-	packages=find_packages(),
+	packages={'ggrdr':['ggrdr']},
 	package_data={'ggrdr':['data/*']},
 	install_requires=[
 		'google-api-python-client',
