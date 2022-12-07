@@ -75,11 +75,9 @@ def fileId_from_path(service, path):
 
 
 def list_items(service, path, order='folder, name', trashed = False):
+	fid = 'root' if path == 'root' else fileId_from_path(service, path)
 	results = service.files().list(
-		q = '"{0}" in parents and trashed = {1}'.format(
-			fileId_from_path(service, path),
-			'true' if trashed else 'false'
-		),
+		q = f'"{fid}" in parents and trashed = {"true" if trashed else "false"}'.format(),
 		orderBy = order,
 	).execute()
 
