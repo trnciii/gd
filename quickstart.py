@@ -44,10 +44,12 @@ def auth():
 
 def fileId_from_path(service, path):
 	path = os.path.normpath(path).split('/')
+	if path[0] in {'.', 'root'}:
+		_, *path = path
+
 	depth = len(path)
-	if path[0] == '.':
-		print('path cannot be root')
-		return
+	if depth == 0:
+		return 'root'
 
 
 	q = '("root" in parents and ' + ') or ('.join( f'name = "{name}"' for name in path ) + ')'
@@ -79,7 +81,7 @@ def fileId_from_path(service, path):
 
 
 def list_items(service, path, order='folder, name', trashed = False):
-	fid = 'root' if path == 'root' else fileId_from_path(service, path)
+	fid = fileId_from_path(service, path)
 	results = service.files().list(
 		q = f'"{fid}" in parents and trashed = {"true" if trashed else "false"}'.format(),
 		orderBy = order,
@@ -96,7 +98,7 @@ def make_directory(service, path):
 		body={
 			'name': tail,
 			'mimeType': 'application/vnd.google-apps.folder',
-			'parents': [f"{parent_id}"] if parent_id else []
+			'parents': [parent_id]
 		},
 		fields = 'id'
 	).execute()
@@ -130,7 +132,7 @@ def main():
 		p.set_defaults(handler=lambda args:make_directory(service, args.path))
 
 		p = sub.add_parser('ls')
-		p.add_argument('path')
+		p.add_argument('path', nargs='?', default='root')
 		p.add_argument('--trashed', action='store_true')
 		p.set_defaults(handler=lambda args:lspretty(list_items(service, args.path, trashed=args.trashed)))
 
