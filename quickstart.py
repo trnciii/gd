@@ -113,7 +113,8 @@ def main():
 
 		p = sub.add_parser('ls')
 		p.add_argument('path')
-		p.set_defaults(handler=lambda args:print('\n'.join(i['name'] for i in list_items(service, args.path))))
+		p.add_argument('--trashed', action='store_true')
+		p.set_defaults(handler=lambda args:print('\n'.join(i['name'] for i in list_items(service, args.path, trashed=args.trashed))))
 
 
 		args = parser.parse_args()
