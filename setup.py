@@ -12,7 +12,7 @@ setup(
 	],
 	entry_points={
 		'console_scripts': [
-			'ggrdr = ggrdr.__main__:main'
+			'gd = ggrdr.__main__:main'
 		]
 	}
 )
