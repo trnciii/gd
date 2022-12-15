@@ -99,6 +99,11 @@ def open_dir(service, path):
 	webbrowser.open(file['webViewLink'])
 
 
+def completion():
+	with open(os.path.join(auth.datapath(), 'completion.bash')) as f:
+		print(f.read())
+
+
 def main():
 	try:
 		service = lambda:build('drive', 'v3', credentials=auth.core())
@@ -133,6 +138,8 @@ def main():
 		p.set_defaults(handler=lambda args:print('\n'.join(
 			f'{k}\t{v}' for k, v in file_from_path(service(), args.path, args.fields).items())
 		))
+
+		sub.add_parser('completion').set_defaults(handler=lambda _:completion())
 
 		auth.add_args(sub.add_parser('auth'))
 
