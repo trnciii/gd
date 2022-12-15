@@ -25,6 +25,11 @@ def init():
 	core()
 
 
+def reset():
+	os.remove(os.path.join(datapath(), 'token.json'))
+	core()
+
+
 def core():
 	"""Shows basic usage of the Drive v3 API.
 	Prints the names and ids of the first 10 files the user has access to.
@@ -56,3 +61,4 @@ def add_args(parser):
 	sub = parser.add_subparsers()
 
 	sub.add_parser('init').set_defaults(handler=lambda _:init())
+	sub.add_parser('reset').set_defaults(handler=lambda _:reset())
