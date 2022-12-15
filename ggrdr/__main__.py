@@ -1,63 +1,15 @@
-from __future__ import print_function
-
 import os
 import argparse
 import webbrowser
 
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-# If modifying these scopes, delete the file token.json.
-SCOPES = ['https://www.googleapis.com/auth/drive']
+from . import auth
 
 
 def lspretty(l):
 	print('\n'.join(i['name'] for i in l))
-
-def datapath():
-	import ggrdr
-	return os.path.join(ggrdr.__path__[0], 'data')
-
-def auth_init():
-	data = datapath()
-	os.makedirs(data, exist_ok=True)
-
-	print('enter credentials:')
-	s = ''.join(iter(lambda:input(), ''))
-	with open(os.path.join(data, 'credentials.json'), 'w') as f:
-		f.write(s)
-
-	auth()
-
-
-def auth():
-	"""Shows basic usage of the Drive v3 API.
-	Prints the names and ids of the first 10 files the user has access to.
-	"""
-	creds = None
-	# The file token.json stores the user's access and refresh tokens, and is
-	# created automatically when the authorization flow completes for the first
-	# time.
-	data = datapath()
-
-	if os.path.exists(os.path.join(data, 'token.json')):
-		creds = Credentials.from_authorized_user_file(os.path.join(data, 'token.json'), SCOPES)
-	# If there are no (valid) credentials available, let the user log in.
-	if not creds or not creds.valid:
-		if creds and creds.expired and creds.refresh_token:
-			creds.refresh(Request())
-		else:
-			flow = InstalledAppFlow.from_client_secrets_file(
-				os.path.join(data, 'credentials.json'), SCOPES)
-			creds = flow.run_local_server(port=0)
-		# Save the credentials for the next run
-		with open(os.path.join(data, 'token.json'), 'w') as token:
-			token.write(creds.to_json())
-
-	return creds
 
 
 def file_from_path(service, path, fields=[]):
@@ -149,7 +101,7 @@ def open_dir(service, path):
 
 def main():
 	try:
-		service = lambda:build('drive', 'v3', credentials=auth())
+		service = lambda:build('drive', 'v3', credentials=auth.core())
 
 		parser = argparse.ArgumentParser()
 		sub = parser.add_subparsers()
@@ -182,11 +134,12 @@ def main():
 			f'{k}\t{v}' for k, v in file_from_path(service(), args.path, args.fields).items())
 		))
 
-		p = sub.add_parser('auth-init').set_defaults(handler=lambda _:auth_init())
+		auth.add_args(sub.add_parser('auth'))
 
 
 		args = parser.parse_args()
-		args.handler(args)
+		if hasattr(args, 'handler'):
+			args.handler(args)
 
 	except HttpError as error:
 		# TODO(developer) - Handle errors from drive API.
