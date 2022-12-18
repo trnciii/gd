@@ -79,11 +79,16 @@ def make_directory(service, path):
 
 
 def trash(service, empty=False):
-	results = service.files().list(q='trashed = true').execute().get('files', [])
+	results = service.files().list(
+		q='trashed=true',
+		fields='files(parents,name)'
+	).execute().get('files', [])
 
 	if len(results) == 0: return
 
-	lspretty(results)
+	w = max(len(i['name']) for i in results)
+	print('\n'.join(f'{r["name"].ljust(w)} | parents {r["parents"]}' for r in results))
+
 	if empty and 'n' != input('remove files [Y/n]').lower():
 		service.files().emptyTrash().execute()
 		print('done')
