@@ -45,11 +45,21 @@ def file_from_path(service, path, fields=[]):
 				parent = next(filter(lambda i: i['id'] in tree[-1]['parents'] and i['name'] == path[count], files))
 				tree.append(parent)
 				if parent['name'] == path[0]:
-					# print(*tree, sep='\n')
 					return tree[0]
 			except StopIteration:
 				break
 
+
+def path_from_file(service, fileId):
+	path = ''
+	while True:
+		ret = service.files().get(fileId=fileId, fields='name,parents').execute()
+
+		if 'parents' not in ret.keys():
+			return f'root{path}'
+
+		path = f'/{ret["name"]}{path}'
+		fileId = ret['parents'][0]
 
 
 def list_items(service, path, order='folder, name', trashed = False):
@@ -130,6 +140,10 @@ def main():
 		p.add_argument('path', nargs='?', default='root')
 		p.add_argument('--trashed', action='store_true')
 		p.set_defaults(handler=lambda args:lspretty(list_items(service(), args.path, trashed=args.trashed)))
+
+		p = sub.add_parser('path')
+		p.add_argument('id')
+		p.set_defaults(handler=lambda args:print(path_from_file(service(), args.id)))
 
 		p = sub.add_parser('trash')
 		p.add_argument('-E', '--empty', action='store_true')
