@@ -9,7 +9,7 @@ _gd(){
 
   case $cword in
     1)
-      COMPREPLY=( $(compgen -W 'mkdir ls trash rm open info auth' -- "$cur") )
+      COMPREPLY=( $(compgen -W 'about mkdir ls trash rm open info auth' -- "$cur") )
       ;;
     *)
       case ${words[1]} in

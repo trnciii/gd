@@ -99,6 +99,13 @@ def open_dir(service, path):
 	webbrowser.open(file['webViewLink'])
 
 
+def about(service):
+	field = 'storageQuota'
+	res = service.about().get(fields=field).execute()[field]
+	w = max(len(k) for k in res.keys())
+	print('\n'.join(f'{k.ljust(w)} {int(v)/1024**3:5.2f}' for k, v in res.items()))
+
+
 def completion():
 	with open(os.path.join(auth.datapath(), 'completion.bash')) as f:
 		print(f.read())
@@ -138,6 +145,8 @@ def main():
 		p.set_defaults(handler=lambda args:print('\n'.join(
 			f'{k}\t{v}' for k, v in file_from_path(service(), args.path, args.fields).items())
 		))
+
+		sub.add_parser('about').set_defaults(handler=lambda _:about(service()))
 
 		sub.add_parser('completion').set_defaults(handler=lambda _:completion())
 
