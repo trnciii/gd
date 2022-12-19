@@ -14,7 +14,7 @@ _gd(){
     *)
       case ${words[1]} in
         auth)
-          COMPREPLY=( $(compgen -W 'init reset') )
+          COMPREPLY=( $(compgen -W 'init reset' -- "$cur") )
           ;;
         ls | mkdir | rm | open | info)
           if [[ "$cur" == */* ]]; then
