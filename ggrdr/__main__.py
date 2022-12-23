@@ -1,6 +1,7 @@
 import os
 import argparse
 import webbrowser
+from concurrent.futures import ThreadPoolExecutor
 
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
@@ -88,7 +89,7 @@ def make_directory(service, path):
 	return fileId
 
 
-def trash(service, empty=False):
+def trash(service, empty=False, info=False):
 	results = service.files().list(
 		q='trashed=true',
 		fields='files(parents,name)'
@@ -97,7 +98,17 @@ def trash(service, empty=False):
 	if len(results) == 0: return
 
 	w = max(len(i['name']) for i in results)
-	print('\n'.join(f'{r["name"].ljust(w)} | parents {r["parents"]}' for r in results))
+
+	if info:
+		get_service = lambda:build('drive', 'v3', credentials=auth.core())
+		item = lambda i: i['name'].ljust(w) + '\n'.ljust(w).join(' | ' + path_from_file(get_service(), p) for p in i['parents'])
+		with ThreadPoolExecutor() as e:
+			futures = [e.submit(item, i) for i in results]
+			for f in futures:
+				print(f.result())
+
+	else:
+		print('\n'.join(f'{r["name"].ljust(w)} | parents {r["parents"]}' for r in results))
 
 	if empty and 'n' != input('remove files [Y/n]').lower():
 		service.files().emptyTrash().execute()
@@ -147,7 +158,8 @@ def main():
 
 		p = sub.add_parser('trash')
 		p.add_argument('-E', '--empty', action='store_true')
-		p.set_defaults(handler=lambda args:trash(service(), args.empty))
+		p.add_argument('-i', '--info', action='store_true')
+		p.set_defaults(handler=lambda args:trash(service(), args.empty, args.info))
 
 		p = sub.add_parser('rm')
 		p.add_argument('path')
