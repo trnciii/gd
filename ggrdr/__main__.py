@@ -145,21 +145,21 @@ def open_dir(path):
 	webbrowser.open(file['webViewLink'])
 
 
-def update_output_path(path, default):
+def update_download_path(path, default):
 	if os.path.isdir(path):
-		return update_output_path(os.path.join(path, default), default)
+		return update_download_path(os.path.join(path, default), default)
 
 	if os.path.isfile(path):
 		new = input('File already exists. Press enter to overwrite or choose a different name: ')
 		if new:
-			return update_output_path(new, default)
+			return update_download_path(new, default)
 		else:
 			return path
 
 	par = os.path.split(os.path.abspath(path))[0]
 	if not os.path.isdir(par):
 		new = input(f"'{par}' is not a directory. Choose a different name: ")
-		return update_output_path(new, default)
+		return update_download_path(new, default)
 
 	return path
 
@@ -181,7 +181,7 @@ def download(path, out):
 
 	fo = file_from_path(path, service=service)
 
-	out = update_output_path(out, fo['name'])
+	out = update_download_path(out, fo['name'])
 
 	value = download_core(fo['id'], service)
 
