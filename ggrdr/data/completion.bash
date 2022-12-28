@@ -1,3 +1,17 @@
+_gd_filedir(){
+  if [[ "$cur" == */* ]]; then
+    local realcur=${cur##*/}
+    local prefix=${cur%/*}
+    COMPREPLY=( $(compgen -W "$(gd ls $prefix)" -P "${prefix}/" -- "$realcur") )
+  else
+    COMPREPLY=( $(compgen -W "$(gd ls)" -- "$cur") )
+  fi
+
+  if declare -F _init_completion >/dev/null 2>&1; then
+    compopt -o nospace # not work on mac
+  fi
+}
+
 _gd(){
   local cur prev words cword split
   if declare -F _init_completion >/dev/null 2>&1; then
@@ -9,7 +23,7 @@ _gd(){
 
   case $cword in
     1)
-      COMPREPLY=( $(compgen -W 'about mkdir ls trash rm open info auth' -- "$cur") )
+      COMPREPLY=( $(compgen -W 'about mkdir ls trash rm open info auth download' -- "$cur") )
       ;;
     *)
       case ${words[1]} in
@@ -17,16 +31,13 @@ _gd(){
           COMPREPLY=( $(compgen -W 'init reset' -- "$cur") )
           ;;
         ls | mkdir | rm | open | info)
-          if [[ "$cur" == */* ]]; then
-            local realcur=${cur##*/}
-            local prefix=${cur%/*}
-            COMPREPLY=( $(compgen -W "$(gd ls $prefix)" -P "${prefix}/" -- "$realcur") )
+          _gd_filedir
+          ;;
+        download)
+          if [[ "$prev" == -o ]]; then
+            _filedir
           else
-            COMPREPLY=( $(compgen -W "$(gd ls)" -- "$cur") )
-          fi
-
-          if declare -F _init_completion >/dev/null 2>&1; then
-            compopt -o nospace # not work on mac
+            _gd_filedir
           fi
           ;;
         esac

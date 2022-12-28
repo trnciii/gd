@@ -1,10 +1,13 @@
 import os
 import argparse
 import webbrowser
+import io
 from concurrent.futures import ThreadPoolExecutor
+import readline
 
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from googleapiclient.http import MediaIoBaseDownload
 
 from . import auth
 
@@ -142,6 +145,51 @@ def open_dir(path):
 	webbrowser.open(file['webViewLink'])
 
 
+def update_output_path(path, default):
+	if os.path.isdir(path):
+		return update_output_path(os.path.join(path, default), default)
+
+	if os.path.isfile(path):
+		new = input('File already exists. Press enter to overwrite or choose a different name: ')
+		if new:
+			return update_output_path(new, default)
+		else:
+			return path
+
+	par = os.path.split(os.path.abspath(path))[0]
+	if not os.path.isdir(par):
+		new = input(f"'{par}' is not a directory. Choose a different name: ")
+		return update_output_path(new, default)
+
+	return path
+
+
+def download_core(fileId, service):
+	request = service.files().get_media(fileId=fileId)
+	raw = io.BytesIO()
+	downloader = MediaIoBaseDownload(raw, request)
+	done = False
+	while done is False:
+		status, done = downloader.next_chunk()
+		print(f'\rprogress {int(status.progress() * 100):3}%', end='', flush=True)
+	print()
+	return raw.getvalue()
+
+
+def download(path, out):
+	service = create_service()
+
+	fo = file_from_path(path, service=service)
+
+	out = update_output_path(out, fo['name'])
+
+	value = download_core(fo['id'], service)
+
+	with open(out, 'wb') as f:
+		f.write(value)
+	print(f'saved, {out}')
+
+
 def about():
 	field = 'storageQuota'
 	res = create_service().about().get(fields=field).execute()[field]
@@ -156,6 +204,8 @@ def completion():
 
 def main():
 	try:
+		readline.parse_and_bind('tab: complete')
+
 		parser = argparse.ArgumentParser()
 		sub = parser.add_subparsers()
 
@@ -191,6 +241,11 @@ def main():
 		p.set_defaults(handler=lambda args:print('\n'.join(
 			f'{k}\t{v}' for k, v in file_from_path(args.path, args.fields).items())
 		))
+
+		p = sub.add_parser('download')
+		p.add_argument('path')
+		p.add_argument('-o', default='.')
+		p.set_defaults(handler=lambda args:download(args.path, args.o))
 
 		sub.add_parser('about').set_defaults(handler=lambda _:about())
 
