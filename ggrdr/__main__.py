@@ -44,8 +44,10 @@ def file_from_path(path, fields=[], service=None):
 
 
 	if depth == 1:
-		assert len(files) == 1
-		return files[0]
+		if len(files) == 1:
+			return files[0]
+		else:
+			return None
 
 
 	for base in [i for i in files if i['name'] == path[-1]]:
