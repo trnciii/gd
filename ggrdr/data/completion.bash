@@ -23,7 +23,7 @@ _gd(){
 
   case $cword in
     1)
-      COMPREPLY=( $(compgen -W 'about mkdir ls trash rm open info auth download' -- "$cur") )
+      COMPREPLY=( $(compgen -W 'about mkdir ls trash rm open info auth download upload' -- "$cur") )
       ;;
     *)
       case ${words[1]} in
@@ -37,6 +37,13 @@ _gd(){
           if [[ "$prev" == -o ]]; then
             _filedir
           else
+            _gd_filedir
+          fi
+          ;;
+        upload)
+          if [[ $cword == 2 ]]; then
+            _filedir
+          elif [[ $cword == 3 ]]; then
             _gd_filedir
           fi
           ;;

@@ -7,7 +7,7 @@ import readline
 
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from googleapiclient.http import MediaIoBaseDownload
+from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
 
 from . import auth
 
@@ -192,6 +192,48 @@ def download(path, out):
 	print(f'saved, {out}')
 
 
+
+def update_upload_path(path, default):
+	fo = file_from_path(path, fields=['mimeType'])
+	if fo:
+		if fo['mimeType'] == 'application/vnd.google-apps.folder':
+			return update_upload_path(os.path.join(path, default), default)
+		else:
+			new = input(f"'{path}' already exists. Choose different name or press enter to allow duplication: ")
+			if new:
+				return update_upload_path(new, default)
+			else:
+				first, second = os.path.split(path)
+				return file_from_path(first), second
+	else:
+		first, second = os.path.split(path)
+		parent = file_from_path(first)
+		if parent:
+			return parent, second
+		else:
+			new = input(f"'{first}' does not exit. Choose different path: ")
+			return update_upload_path(new, default)
+
+
+def upload(local, remote):
+	if not os.path.isfile(local):
+		print(f"'{local}' is not a file")
+		return
+
+	service = create_service()
+
+	parent, file = update_upload_path(remote, os.path.basename(local))
+
+	meta = {
+		'name': file,
+		'parents': [parent['id']]
+	}
+
+	media = MediaFileUpload(local)
+	service.files().create(body=meta, media_body=media).execute()
+
+
+
 def about():
 	field = 'storageQuota'
 	res = create_service().about().get(fields=field).execute()[field]
@@ -248,6 +290,11 @@ def main():
 		p.add_argument('path')
 		p.add_argument('-o', default='.')
 		p.set_defaults(handler=lambda args:download(args.path, args.o))
+
+		p = sub.add_parser('upload')
+		p.add_argument('src')
+		p.add_argument('dst', nargs='?', default='root')
+		p.set_defaults(handler=lambda args:upload(args.src, args.dst))
 
 		sub.add_parser('about').set_defaults(handler=lambda _:about())
 
