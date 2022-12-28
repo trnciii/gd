@@ -9,11 +9,18 @@ from googleapiclient.errors import HttpError
 from . import auth
 
 
+def create_service():
+	return build('drive', 'v3', credentials=auth.core())
+
 def lspretty(l):
 	print('\n'.join(i['name'] for i in l))
 
 
-def file_from_path(service, path, fields=[]):
+def file_from_path(path, fields=[], service=None):
+	if not service:
+		service = create_service()
+
+
 	fields += ['parents', 'id', 'name']
 
 	path = os.path.normpath(path).split('/')
@@ -51,7 +58,10 @@ def file_from_path(service, path, fields=[]):
 				break
 
 
-def path_from_file(service, fileId):
+def path_from_file(fileId, service=None):
+	if not service:
+		service = create_service()
+
 	path = ''
 	while True:
 		ret = service.files().get(fileId=fileId, fields='name,parents').execute()
@@ -63,8 +73,11 @@ def path_from_file(service, fileId):
 		fileId = ret['parents'][0]
 
 
-def list_items(service, path, order='folder, name', trashed = False):
-	fid = file_from_path(service, path)['id']
+def list_items(path, order='folder, name', trashed = False, service=None):
+	if not service:
+		service = create_service()
+
+	fid = file_from_path(path, service=service)['id']
 	results = service.files().list(
 		q = f'"{fid}" in parents and trashed = {"true" if trashed else "false"}',
 		orderBy = order,
@@ -73,9 +86,12 @@ def list_items(service, path, order='folder, name', trashed = False):
 	return results.get('files', [])
 
 
-def make_directory(service, path):
+def make_directory(path, service=None):
+	if not service:
+		service = create_service()
+
 	head, tail = os.path.split(path)
-	parent_id = file_from_path(service, head)['id']
+	parent_id = file_from_path(head, service=service)['id']
 
 	fileId = service.files().create(
 		body={
@@ -89,7 +105,9 @@ def make_directory(service, path):
 	return fileId
 
 
-def trash(service, empty=False, info=False):
+def trash(empty=False, info=False):
+	service = create_service()
+
 	results = service.files().list(
 		q='trashed=true',
 		fields='files(parents,name)'
@@ -100,8 +118,7 @@ def trash(service, empty=False, info=False):
 	w = max(len(i['name']) for i in results)
 
 	if info:
-		get_service = lambda:build('drive', 'v3', credentials=auth.core())
-		item = lambda i: i['name'].ljust(w) + '\n'.ljust(w).join(' | ' + path_from_file(get_service(), p) for p in i['parents'])
+		item = lambda i: i['name'].ljust(w) + '\n'.ljust(w).join(' | ' + path_from_file(create_service(), p) for p in i['parents'])
 		with ThreadPoolExecutor() as e:
 			futures = [e.submit(item, i) for i in results]
 			for f in futures:
@@ -115,18 +132,19 @@ def trash(service, empty=False, info=False):
 		print('done')
 
 
-def remove(service, path):
-	fid = file_from_path(service, path)['id']
+def remove(path):
+	service = create_service()
+	fid = file_from_path(path, service=service)['id']
 	service.files().update(fileId=fid, body={'trashed': True}).execute()
 
-def open_dir(service, path):
-	file = file_from_path(service, path, fields=['webViewLink'])
+def open_dir(path):
+	file = file_from_path(path, fields=['webViewLink'])
 	webbrowser.open(file['webViewLink'])
 
 
-def about(service):
+def about():
 	field = 'storageQuota'
-	res = service.about().get(fields=field).execute()[field]
+	res = create_service().about().get(fields=field).execute()[field]
 	w = max(len(k) for k in res.keys())
 	print('\n'.join(f'{k.ljust(w)} {int(v)/1024**3:5.2f}' for k, v in res.items()))
 
@@ -138,45 +156,43 @@ def completion():
 
 def main():
 	try:
-		service = lambda:build('drive', 'v3', credentials=auth.core())
-
 		parser = argparse.ArgumentParser()
 		sub = parser.add_subparsers()
 
 		p = sub.add_parser('mkdir')
 		p.add_argument('path')
-		p.set_defaults(handler=lambda args:make_directory(service(), args.path))
+		p.set_defaults(handler=lambda args:make_directory(args.path))
 
 		p = sub.add_parser('ls')
 		p.add_argument('path', nargs='?', default='root')
 		p.add_argument('--trashed', action='store_true')
-		p.set_defaults(handler=lambda args:lspretty(list_items(service(), args.path, trashed=args.trashed)))
+		p.set_defaults(handler=lambda args:lspretty(list_items(args.path, trashed=args.trashed)))
 
 		p = sub.add_parser('path')
 		p.add_argument('id')
-		p.set_defaults(handler=lambda args:print(path_from_file(service(), args.id)))
+		p.set_defaults(handler=lambda args:print(path_from_file(args.id)))
 
 		p = sub.add_parser('trash')
 		p.add_argument('-E', '--empty', action='store_true')
 		p.add_argument('-i', '--info', action='store_true')
-		p.set_defaults(handler=lambda args:trash(service(), args.empty, args.info))
+		p.set_defaults(handler=lambda args:trash(args.empty, args.info))
 
 		p = sub.add_parser('rm')
 		p.add_argument('path')
-		p.set_defaults(handler=lambda args:remove(service(), args.path))
+		p.set_defaults(handler=lambda args:remove(args.path))
 
 		p = sub.add_parser('open')
 		p.add_argument('path', nargs='?', default='root')
-		p.set_defaults(handler=lambda args:open_dir(service(), args.path))
+		p.set_defaults(handler=lambda args:open_dir(args.path))
 
 		p = sub.add_parser('info')
 		p.add_argument('path', nargs='?', default='root')
 		p.add_argument('fields', nargs='*')
 		p.set_defaults(handler=lambda args:print('\n'.join(
-			f'{k}\t{v}' for k, v in file_from_path(service(), args.path, args.fields).items())
+			f'{k}\t{v}' for k, v in file_from_path(args.path, args.fields).items())
 		))
 
-		sub.add_parser('about').set_defaults(handler=lambda _:about(service()))
+		sub.add_parser('about').set_defaults(handler=lambda _:about())
 
 		sub.add_parser('completion').set_defaults(handler=lambda _:completion())
 
