@@ -178,15 +178,16 @@ def update_download_path(path, default):
 	return path
 
 
-def download_core(fileId, service):
+def download_core(fileId, silent=False, service=None):
 	request = service.files().get_media(fileId=fileId)
 	raw = io.BytesIO()
 	downloader = MediaIoBaseDownload(raw, request)
 	done = False
 	while done is False:
 		status, done = downloader.next_chunk()
-		print(f'\rprogress {int(status.progress() * 100):3}%', end='', flush=True)
-	print()
+		if not silent:
+			print(f'\rprogress {int(status.progress() * 100):3}%', end='', flush=True)
+
 	return raw.getvalue()
 
 
@@ -196,13 +197,27 @@ def download(path, out):
 	fo = file_from_path(path, service=service)
 
 	out = update_download_path(out, fo['name'])
-
-	value = download_core(fo['id'], service)
+	value = download_core(fo['id'], service=service)
 
 	with open(out, 'wb') as f:
 		f.write(value)
 	print(f'saved, {out}')
 
+
+def cat(path):
+	service = create_service()
+	fo = file_from_path(path, fields=['mimeType'], service=service)
+
+	printable = {'text', 'json'}
+	mimeType = fo['mimeType']
+	if all(i not in mimeType for i in printable):
+		if 'n' == input(f'{mimeType=} may not be printable. Continue? (Y/n)').lower():
+			return
+		else:
+			print()
+
+	value = download_core(fo['id'], silent=True, service=service)
+	print(value.decode('utf-8'))
 
 
 def update_upload_path(path, default):
@@ -308,6 +323,10 @@ def main():
 		p.add_argument('src')
 		p.add_argument('dst', nargs='?', default='root')
 		p.set_defaults(handler=lambda args:upload(args.src, args.dst))
+
+		p = sub.add_parser('cat')
+		p.add_argument('path')
+		p.set_defaults(handler=lambda args:cat(args.path))
 
 		sub.add_parser('about').set_defaults(handler=lambda _:about())
 
