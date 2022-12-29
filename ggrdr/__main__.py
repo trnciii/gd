@@ -107,14 +107,26 @@ def make_directory(path, service=None):
 	if not service:
 		service = create_service()
 
-	head, tail = os.path.split(path)
-	parent_id = file_from_path(head, service=service)['id']
+	while True:
+		par, chi = os.path.split(path)
+
+		par_fo = file_from_path(par, fields=['mimeType'], service=service)
+		if (not par_fo) or (par_fo['mimeType'] != 'application/vnd.google-apps.folder'):
+			path = input(f"'{par}' is not a directory. Choose different path: ")
+			continue
+
+		chi_fo = file_from_path(path, service=service)
+		if chi_fo:
+			path = input(f"'{path}' already exists. Choose different name or press enter to allow duplication: ")
+			continue
+
+		break
 
 	fileId = service.files().create(
 		body={
-			'name': tail,
+			'name': chi,
 			'mimeType': 'application/vnd.google-apps.folder',
-			'parents': [parent_id]
+			'parents': [par_fo['id']]
 		},
 		fields = 'id'
 	).execute()
