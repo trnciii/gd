@@ -276,6 +276,7 @@ def upload(local, remote):
 def about():
 	field = 'storageQuota'
 	res = create_service().about().get(fields=field).execute()[field]
+	res['free'] = int(res['limit']) - int(res['usage'])
 	w = max(len(k) for k in res.keys())
 	print('\n'.join(f'{k.ljust(w)} {int(v)/1024**3:5.2f}' for k, v in res.items()))
 
