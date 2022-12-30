@@ -1,0 +1,22 @@
+[build-system]
+requires = ['setuptools', 'setuptools_scm']
+build-backend = 'setuptools.build_meta'
+
+[project]
+name = 'ggrdr'
+description = 'gdgd'
+dynamic = ['version']
+dependencies = [
+	'google-api-python-client',
+	'google-auth-httplib2',
+	'google-auth-oauthlib',
+]
+
+[tool.setuptools.dynamic]
+version = {attr = 'ggrdr._v.version'}
+
+[tool.setuptools_scm]
+write_to = 'ggrdr/_v.py'
+
+[project.scripts]
+gd = 'ggrdr.__main__:main'
