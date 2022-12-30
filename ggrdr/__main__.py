@@ -147,7 +147,7 @@ def trash(empty=False, info=False):
 	w = max(len(i['name']) for i in results)
 
 	if info:
-		item = lambda i: i['name'].ljust(w) + '\n'.ljust(w).join(' | ' + path_from_file(create_service(), p) for p in i['parents'])
+		item = lambda i: i['name'].ljust(w) + '\n'.ljust(w).join(' | ' + path_from_file(p, service=create_service()) for p in i['parents'])
 		with ThreadPoolExecutor() as e:
 			futures = [e.submit(item, i) for i in results]
 			for f in futures:
