@@ -1,0 +1,3 @@
+[submodule "ggrdr/ayame"]
+	path = ggrdr/ayame
+	url = https://github.com/trnciii/ayame

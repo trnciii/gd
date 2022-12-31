@@ -10,6 +10,7 @@ from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
 
 from . import auth
+from .ayame import terminal
 
 
 def create_service():
@@ -78,13 +79,11 @@ def path_from_file(fileId, service=None):
 def ls(path, order='folder, name', trashed = False, fields=[], askeys=False):
 	service = create_service()
 
-	fields = ['name'] + fields
-
 	fid = file_from_path(path, service=service)['id']
 	results = service.files().list(
 		q = f'"{fid}" in parents and trashed = {"true" if trashed else "false"}',
 		orderBy = order,
-		fields=f'files({",".join(fields)})'
+		fields=f'files({",".join({"name", "mimeType"} | set(fields))})'
 	).execute()
 
 
@@ -92,14 +91,18 @@ def ls(path, order='folder, name', trashed = False, fields=[], askeys=False):
 		print(' '.join(i['name'] for i in results.get('files', [])))
 
 	else:
-		files = results.get('files', [])
-		widths = {k:max(len(i[k]) for i in files) for k in fields}
-		items = [' | '.join(i[f].ljust(widths[f]) for f in fields) for i in results.get('files', [])]
+		display_fields = ['name'] + fields
 
-		print(' | '.join(f.ljust(widths[f]) for f in fields))
-		print('-'*max(len(i) for i in items))
-		for i in items:
-			print(i)
+		files = results.get('files', [])
+		widths = {k:max(len(i[k]) for i in files) for k in display_fields}
+
+		print(' | '.join(f.ljust(widths[f]) for f in display_fields))
+		print('-'*(sum(i + 3 for i in widths.values()) - 3))
+		for i in files:
+			if i['mimeType'] == 'application/vnd.google-apps.folder':
+				i['name'] = terminal.mod(i['name'], terminal.color('blue'), terminal.bold())
+
+			print(' | ' .join(i[f].ljust(widths[f]) for f in display_fields))
 
 
 def make_directory(path, service=None):
