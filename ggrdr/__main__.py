@@ -88,7 +88,7 @@ def ls(path, order='folder, name', trashed = False, fields=[], askeys=False):
 
 
 	if askeys:
-		print(' '.join(i['name'] for i in results.get('files', [])))
+		print('\n'.join(i['name'] for i in results.get('files', [])))
 
 	else:
 		display_fields = ['name'] + fields

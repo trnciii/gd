@@ -1,4 +1,6 @@
 _gd_filedir(){
+  local IFS=$'\n'
+
   if [[ "$cur" == */* ]]; then
     local realcur=${cur##*/}
     local prefix=${cur%/*}
