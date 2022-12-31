@@ -200,6 +200,9 @@ def download_core(fileId, silent=False, service=None):
 		if not silent:
 			print(f'\rprogress {int(status.progress() * 100):3}%', end='', flush=True)
 
+	if not silent:
+		print()
+
 	return raw.getvalue()
 
 
@@ -213,7 +216,7 @@ def download(path, out):
 
 	with open(out, 'wb') as f:
 		f.write(value)
-	print(f'saved, {out}')
+	print(f'saved {out}')
 
 
 def cat(path):
