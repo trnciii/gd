@@ -2,9 +2,9 @@ _gd_filedir(){
   if [[ "$cur" == */* ]]; then
     local realcur=${cur##*/}
     local prefix=${cur%/*}
-    COMPREPLY=( $(compgen -W "$(gd ls $prefix)" -P "${prefix}/" -- "$realcur") )
+    COMPREPLY=( $(compgen -W "$(gd ls --keys $prefix)" -P "${prefix}/" -- "$realcur") )
   else
-    COMPREPLY=( $(compgen -W "$(gd ls)" -- "$cur") )
+    COMPREPLY=( $(compgen -W "$(gd ls --keys)" -- "$cur") )
   fi
 
   if declare -F _init_completion >/dev/null 2>&1; then

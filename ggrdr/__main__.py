@@ -75,7 +75,7 @@ def path_from_file(fileId, service=None):
 		fileId = ret['parents'][0]
 
 
-def ls(path, order='folder, name', trashed = False, fields=[]):
+def ls(path, order='folder, name', trashed = False, fields=[], askeys=False):
 	service = create_service()
 
 	fields = ['name'] + fields
@@ -88,9 +88,8 @@ def ls(path, order='folder, name', trashed = False, fields=[]):
 	).execute()
 
 
-	if fields == ['name']:
-		for i in results.get('files', []):
-			print(i['name'])
+	if askeys:
+		print(' '.join(i['name'] for i in results.get('files', [])))
 
 	else:
 		files = results.get('files', [])
@@ -307,7 +306,8 @@ def main():
 		p.add_argument('path', nargs='?', default='root')
 		p.add_argument('--trashed', action='store_true')
 		p.add_argument('--fields', nargs='*', default=[])
-		p.set_defaults(handler=lambda args:ls(args.path, trashed=args.trashed, fields=args.fields))
+		p.add_argument('--keys', action='store_true')
+		p.set_defaults(handler=lambda args:ls(args.path, trashed=args.trashed, fields=args.fields, askeys=args.keys))
 
 		p = sub.add_parser('path')
 		p.add_argument('id')
