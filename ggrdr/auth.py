@@ -22,15 +22,15 @@ def init():
 	with open(os.path.join(data, 'credentials.json'), 'w') as f:
 		f.write(s)
 
-	core()
+	return _core()
 
 
 def reset():
 	os.remove(os.path.join(datapath(), 'token.json'))
-	core()
+	return _core()
 
 
-def core():
+def _core():
 	"""Shows basic usage of the Drive v3 API.
 	Prints the names and ids of the first 10 files the user has access to.
 	"""
@@ -55,6 +55,16 @@ def core():
 			token.write(creds.to_json())
 
 	return creds
+
+
+def core():
+	try:
+		return _core()
+	except:
+		if os.path.isfile(os.path.join(datapath(), 'credentials.json')):
+			return reset()
+		else:
+			return init()
 
 
 def add_args(parser):
