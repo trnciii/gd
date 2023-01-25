@@ -196,9 +196,12 @@ def download_core(fileId, silent=False, service=None):
 	request = service.files().get_media(fileId=fileId)
 	raw = io.BytesIO()
 	downloader = MediaIoBaseDownload(raw, request)
-	done = False
-	while done is False:
+	while True:
 		status, done = downloader.next_chunk()
+
+		if done:
+			break
+
 		if not silent:
 			print(f'\rprogress {int(status.progress() * 100):3}%', end='', flush=True)
 
