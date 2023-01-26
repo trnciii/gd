@@ -76,7 +76,7 @@ def path_from_file(fileId, service=None):
 		fileId = ret['parents'][0]
 
 
-def ls(path, order='folder, name', trashed = False, fields=[], askeys=False):
+def ls(path, order='folder, name', trashed = False, fields=[], askeys=False, trim=True):
 	service = create_service()
 
 	fid = file_from_path(path, service=service)['id']
@@ -96,13 +96,22 @@ def ls(path, order='folder, name', trashed = False, fields=[], askeys=False):
 		files = results.get('files', [])
 		widths = {k:max(zen.display_length(i[k]) for i in files) for k in display_fields}
 
+		if trim:
+			total = sum(i+3 for i in widths.values()) - 3
+			exceed = total - os.get_terminal_size()[0]
+			if exceed > 0:
+				widths = {k:v - int(exceed * v/total + 1) for k, v in widths.items()}
+
 		print(' | '.join(f.ljust(widths[f]) for f in display_fields))
 		print('-'*(sum(i + 3 for i in widths.values()) - 3))
 		for i in files:
 			if i['mimeType'] == 'application/vnd.google-apps.folder':
 				i['name'] = terminal.mod(i['name'], terminal.color('blue'), terminal.bold())
 
-			print(' | ' .join(zen.ljust(i[f], widths[f]) for f in display_fields))
+			print(' | ' .join(
+				zen.ljust(zen.trim(i[f], widths[f]), widths[f])
+				for f in display_fields
+			))
 
 
 def make_directory(path, service=None):
@@ -312,7 +321,14 @@ def main():
 		p.add_argument('--trashed', action='store_true')
 		p.add_argument('--fields', nargs='*', default=[])
 		p.add_argument('--keys', action='store_true')
-		p.set_defaults(handler=lambda args:ls(args.path, trashed=args.trashed, fields=args.fields, askeys=args.keys))
+		p.add_argument('--no-trim', action='store_false')
+		p.set_defaults(handler=lambda args:ls(
+			args.path,
+			trashed=args.trashed,
+			fields=args.fields,
+			askeys=args.keys,
+			trim=args.no_trim
+		))
 
 		p = sub.add_parser('path')
 		p.add_argument('id')
