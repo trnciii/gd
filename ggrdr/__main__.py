@@ -10,7 +10,7 @@ from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaIoBaseDownload, MediaFileUpload
 
 from . import auth
-from .ayame import terminal
+from .ayame import terminal, zen
 
 
 def create_service():
@@ -94,7 +94,7 @@ def ls(path, order='folder, name', trashed = False, fields=[], askeys=False):
 		display_fields = ['name'] + fields
 
 		files = results.get('files', [])
-		widths = {k:max(len(i[k]) for i in files) for k in display_fields}
+		widths = {k:max(zen.display_length(i[k]) for i in files) for k in display_fields}
 
 		print(' | '.join(f.ljust(widths[f]) for f in display_fields))
 		print('-'*(sum(i + 3 for i in widths.values()) - 3))
@@ -102,7 +102,7 @@ def ls(path, order='folder, name', trashed = False, fields=[], askeys=False):
 			if i['mimeType'] == 'application/vnd.google-apps.folder':
 				i['name'] = terminal.mod(i['name'], terminal.color('blue'), terminal.bold())
 
-			print(' | ' .join(i[f].ljust(widths[f]) for f in display_fields))
+			print(' | ' .join(zen.ljust(i[f], widths[f]) for f in display_fields))
 
 
 def make_directory(path, service=None):
