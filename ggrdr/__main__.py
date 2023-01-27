@@ -155,17 +155,18 @@ def trash(empty=False, info=False):
 
 	if len(results) == 0: return
 
-	w = max(len(i['name']) for i in results)
-
 	if info:
-		item = lambda i: i['name'].ljust(w) + '\n'.ljust(w).join(' | ' + path_from_file(p, service=create_service()) for p in i['parents'])
 		with ThreadPoolExecutor() as e:
-			futures = [e.submit(item, i) for i in results]
-			for f in futures:
-				print(f.result())
-
+			parents = list(e.map(
+				lambda i:[path_from_file(p, service=create_service()) for p in i['parents']],
+				results
+			))
 	else:
-		print('\n'.join(f'{r["name"].ljust(w)} | parents {r["parents"]}' for r in results))
+		parents = [i['parents'] for i in results]
+
+	w = max(30, os.get_terminal_size()[0] - max(max(len(j) for j in i) for i in parents) - 3)
+	for name, parents in zip((r['name'] for r in results), parents):
+		print(zen.ljust(zen.trim(name, w), w) + '\n'.ljust(w).join(' | ' + p for p in parents))
 
 	if empty and 'n' != input('remove files [Y/n]').lower():
 		service.files().emptyTrash().execute()
