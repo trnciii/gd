@@ -145,7 +145,7 @@ def make_directory(path, service=None):
 	return fileId
 
 
-def trash(empty=False, info=False):
+def trash(empty=False, parentpath=False):
 	service = create_service()
 
 	results = service.files().list(
@@ -155,7 +155,7 @@ def trash(empty=False, info=False):
 
 	if len(results) == 0: return
 
-	if info:
+	if parentpath:
 		with ThreadPoolExecutor() as e:
 			parents = list(e.map(
 				lambda i:[path_from_file(p, service=create_service()) for p in i['parents']],
@@ -337,8 +337,8 @@ def main():
 
 		p = sub.add_parser('trash')
 		p.add_argument('-E', '--empty', action='store_true')
-		p.add_argument('-i', '--info', action='store_true')
-		p.set_defaults(handler=lambda args:trash(args.empty, args.info))
+		p.add_argument('-i', '--path', action='store_true')
+		p.set_defaults(handler=lambda args:trash(args.empty, args.path))
 
 		p = sub.add_parser('rm')
 		p.add_argument('path')
