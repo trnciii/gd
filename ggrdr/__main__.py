@@ -164,7 +164,10 @@ def trash(empty=False, parentpath=False):
 	else:
 		parents = [i['parents'] for i in results]
 
-	w = max(30, os.get_terminal_size()[0] - max(max(len(j) for j in i) for i in parents) - 3)
+	full = os.get_terminal_size()[0]
+	w = max(30, full - max(max(len(j) for j in i) for i in parents+['parents']) - 3)
+	print('files'.ljust(w) + ' | parents')
+	print('-'*full)
 	for name, parents in zip((r['name'] for r in results), parents):
 		print(zen.ljust(zen.trim(name, w), w) + '\n'.ljust(w).join(' | ' + p for p in parents))
 
