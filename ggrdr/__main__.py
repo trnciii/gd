@@ -94,22 +94,31 @@ def ls(path, order='folder, name', trashed = False, fields=[], askeys=False, tri
 		display_fields = ['name'] + fields
 
 		files = results.get('files', [])
-		widths = {k:max(zen.display_length(i[k]) for i in files) for k in display_fields}
+		widths = {k:max(zen.display_length(str(i[k])) for i in files) for k in display_fields}
+
+		window = os.get_terminal_size()[0]
 
 		if trim:
-			total = sum(i+3 for i in widths.values()) - 3
-			exceed = total - os.get_terminal_size()[0]
-			if exceed > 0:
+			if (
+				sum(widths.values()) + 3*len(widths) > window
+				and widths['name'] > 0.6*window
+			):
+				widths['name'] = int(0.6*window)
+
+			total = sum(widths.values()) + 3*len(widths)
+			exceed = total - window
+			if exceed>0:
 				widths = {k:v - int(exceed * v/total + 1) for k, v in widths.items()}
 
+
 		print(' | '.join(f.ljust(widths[f]) for f in display_fields))
-		print('-'*(sum(i + 3 for i in widths.values()) - 3))
+		print('='*window)
 		for i in files:
 			if i['mimeType'] == 'application/vnd.google-apps.folder':
 				i['name'] = terminal.mod(i['name'], terminal.color('blue'), terminal.bold())
 
 			print(' | ' .join(
-				zen.ljust(zen.trim(i[f], widths[f]), widths[f])
+				zen.ljust(zen.trim(str(i[f]), widths[f]), widths[f])
 				for f in display_fields
 			))
 
