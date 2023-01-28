@@ -25,14 +25,14 @@ _gd(){
 
   case $cword in
     1)
-      COMPREPLY=( $(compgen -W 'about mkdir ls trash rm open info auth download upload cat' -- "$cur") )
+      COMPREPLY=( $(compgen -W 'about mkdir ls trash rm open info auth download upload cat edit' -- "$cur") )
       ;;
     *)
       case ${words[1]} in
         auth)
           COMPREPLY=( $(compgen -W 'init reset' -- "$cur") )
           ;;
-        ls | mkdir | rm | open | info | cat)
+        ls | mkdir | rm | open | info | cat | edit)
           _gd_filedir
           ;;
         download)
