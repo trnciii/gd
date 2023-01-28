@@ -304,6 +304,28 @@ def upload(local, remote, mimeType=None):
 		service.files().update(fileId=ret['id'], media_body=media).execute()
 
 
+def edit(remotepath, message=None):
+	import tempfile, subprocess
+
+	try:
+		localf = tempfile.NamedTemporaryFile(mode='w+t', encoding='utf-8', delete=False)
+		remotefo = file_from_path(remotepath)
+		if remotefo:
+			localf.write(download_core(remotefo['id'], service=create_service()).decode('utf-8'))
+
+		if message:
+			localf.write(f'{message}\n')
+			localf.close()
+		else:
+			localf.close()
+			subprocess.run(['vim', localf.name])
+
+		upload(localf.name, remotepath, mimeType='text/plain')
+
+	finally:
+		localf.close()
+		os.remove(localf.name)
+
 
 
 def about():
@@ -380,6 +402,11 @@ def main():
 		p.add_argument('src')
 		p.add_argument('dst', nargs='?', default='root')
 		p.set_defaults(handler=lambda args:upload(args.src, args.dst))
+
+		p = sub.add_parser('edit')
+		p.add_argument('name')
+		p.add_argument('-m')
+		p.set_defaults(handler=lambda args:edit(args.name, args.m))
 
 		p = sub.add_parser('cat')
 		p.add_argument('path')
