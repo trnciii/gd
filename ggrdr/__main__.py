@@ -282,7 +282,7 @@ def update_upload_path(path, default):
 			return update_upload_path(new, default)
 
 
-def upload(local, remote):
+def upload(local, remote, mimeType=None):
 	if not os.path.isfile(local):
 		print(f"'{local}' is not a file")
 		return
@@ -290,7 +290,7 @@ def upload(local, remote):
 	service = create_service()
 
 	ret = update_upload_path(remote, os.path.basename(local))
-	media = MediaFileUpload(local)
+	media = MediaFileUpload(local, mimetype=mimeType)
 
 	if type(ret) == tuple:
 		# upload new file
