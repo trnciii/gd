@@ -225,7 +225,7 @@ def download_core(fileId, silent=False, service=None):
 			break
 
 		if not silent:
-			print(f'\rprogress {int(status.progress() * 100):3}%', end='', flush=True)
+			print(f'\rdownloading... {int(status.progress() * 100):3}%', end='', flush=True)
 
 	terminal.clean_row()
 
