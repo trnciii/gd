@@ -267,11 +267,14 @@ def update_upload_path(path, default):
 		if fo['mimeType'] == 'application/vnd.google-apps.folder':
 			return update_upload_path(os.path.join(path, default), default)
 		else:
-			new = input(f"'{path}' already exists. Choose different name or press enter to overwrite: ")
-			if new:
-				return update_upload_path(new, default)
-			else:
-				return fo
+			while True:
+				c = input(f"'{path}' already exists. Choose what to do next (W: overwrite, c: cancel, r: rename)").lower()
+				if c in ' w':
+					return fo
+				elif c == 'c':
+					return None
+				elif c == 'r':
+					return update_upload_path(input('new filepath: '), default)
 	else:
 		first, second = os.path.split(path)
 		parent = file_from_path(first)
@@ -290,6 +293,9 @@ def upload(local, remote, mimeType=None):
 	service = create_service()
 
 	ret = update_upload_path(remote, os.path.basename(local))
+	if not ret:
+		return
+
 	media = MediaFileUpload(local, mimetype=mimeType)
 
 	if type(ret) == tuple:
