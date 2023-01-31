@@ -258,7 +258,7 @@ def cat(path):
 			print()
 
 	value = download_core(fo['id'], silent=True, service=service)
-	print(value.decode('utf-8'))
+	print(value.decode('utf-8'), end='')
 
 
 def update_upload_path(path, default):
